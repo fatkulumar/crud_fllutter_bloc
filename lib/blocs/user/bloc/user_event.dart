@@ -12,3 +12,18 @@ class AddUser extends UserEvent {
 
   AddUser({required this.name, required this.email, required this.password});
 }
+
+class UpdateUser extends UserEvent {
+  final int id;
+  final String name;
+  final String email;
+  final String password;
+
+  UpdateUser({required this.id, required this.name, required this.email, required this.password});
+}
+
+class DeleteUser extends UserEvent {
+  final int id;
+
+  DeleteUser({required this.id});
+}

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/blocs/user/bloc/user_bloc.dart';
+import 'package:flutter_application_1/models/user_model.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class MyAdd extends StatefulWidget {
-  const MyAdd({super.key});
+   final UserModel? user; 
+  const MyAdd({super.key, this.user});
 
   @override
   State<MyAdd> createState() => _MyAddState();
@@ -14,6 +16,16 @@ class _MyAddState extends State<MyAdd> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.user != null) {
+      _nameController.text = widget.user!.name;
+      _emailController.text = widget.user!.email;
+      _passwordController.text = widget.user!.password; // opsional
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,12 +108,24 @@ class _MyAddState extends State<MyAdd> {
                       final email = _emailController.text;
                       final password = _passwordController.text;
 
-                      context.read<UserBloc>().add(
-                        AddUser(name: name, email: email, password: password),
-                      );
+                      if (widget.user == null) {
+                        context.read<UserBloc>().add(
+                          AddUser(name: name, email: email, password: password),
+                        );
+                      } else {
+                        // mode edit
+                        context.read<UserBloc>().add(
+                          UpdateUser(
+                            id: widget.user!.id!,
+                            name: name,
+                            email: email,
+                            password: password,
+                          ),
+                        );
+                      }
                     }
                   },
-                  child: Text('Tambah User'),
+                  child: Text(widget.user == null ? 'Tambah User' : 'Update User'),
                 ),
               ),
             ],

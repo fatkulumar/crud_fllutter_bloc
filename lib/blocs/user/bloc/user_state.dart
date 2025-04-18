@@ -25,3 +25,8 @@ final class UserError extends UserState {
   final String error;
   UserError(this.error);
 }
+
+final class UserDeleted extends UserState {
+  final String message;
+  UserDeleted(this.message);
+}

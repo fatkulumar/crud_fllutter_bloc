@@ -1,58 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/user_model.dart';
-import 'package:flutter_application_1/stores/user_api.dart';
+import 'package:flutter_application_1/repositories/user_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'user_event.dart';
 part 'user_state.dart';
 
 class UserBloc extends Bloc<UserEvent, UserState> {
-  final UserApi userApi;
-  UserBloc(this.userApi) : super(UserInitial()) {
-    on<LoadUser>((event, emit) async {
+  final UserRepository userRepository;
+      UserBloc(this.userRepository) : super(UserInitial()) {
+      on<LoadUser>((event, emit) async {
       emit(UserLoading());
       try {
-        final response = await userApi.getUsers();
+        final response = await userRepository.getUsers();
+        final users = response.data?.data ??
+            (response.singleData != null ? [response.singleData!] : []);
 
-        if (response.data != null) {
-          emit(
-            UserLoaded(
-              code: response.code,
-              message: response.message,
-              success: response.success,
-              users: response.data!.data, // Mengambil list data pengguna
-            ),
-          );
-        } else if (response.singleData != null) {
-          // Menghitung jika hanya ada satu objek pengguna (untuk addUser)
-          emit(
-            UserLoaded(
-              code: response.code,
-              message: response.message,
-              success: response.success,
-              users: [
-                response.singleData!,
-              ], // Menampilkan satu objek sebagai list
-            ),
-          );
-        } else {
-          emit(
-            UserLoaded(
-              code: response.code,
-              message: response.message,
-              success: response.success,
-              users: [],
-            ),
-          );
-        }
+        emit(UserLoaded(
+          code: response.code,
+          message: response.message,
+          success: response.success,
+          users: users,
+        ));
       } catch (e) {
-        emit(UserError(e.toString()));
+        emit(UserError('Gagal memuat data user: $e'));
       }
     });
 
     on<AddUser>((event, emit) async {
       try {
-        final response = await userApi.addUser(
+        final response = await userRepository.addUser(
           event.name,
           event.email,
           event.password,
@@ -88,6 +65,80 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         }
       } catch (e) {
         emit(UserError('Gagal menambahkan user: $e'));
+      }
+    });
+
+    on<UpdateUser>((event, emit) async {
+      try {
+        final response = await userRepository.updateUser(
+          event.id,
+          event.name,
+          event.email,
+          event.password,
+        );
+
+        if (response.singleData == null) {
+          emit(UserError('Data user gagal diupdate.'));
+          return;
+        }
+
+        final updatedUser = response.singleData!;
+
+        if (state is UserLoaded) {
+          final currentState = state as UserLoaded;
+
+          final updatedUsers = currentState.users.map((user) {
+            return user.id == updatedUser.id ? updatedUser : user;
+          }).toList();
+
+          emit(UserLoaded(
+            code: response.code,
+            message: response.message,
+            success: response.success,
+            users: updatedUsers,
+          ));
+        } else {
+          // fallback: jika sebelumnya bukan UserLoaded
+          emit(UserLoaded(
+            code: response.code,
+            message: response.message,
+            success: response.success,
+            users: [updatedUser],
+          ));
+        }
+
+      } catch (e) {
+        emit(UserError('Gagal update user: $e'));
+      }
+    });
+
+    on<DeleteUser>((event, emit) async {
+      try {
+        final response = await userRepository.deleteUser(event.id);
+
+        if (response.success && response.code == 200) {
+          if (state is UserLoaded) {
+            final currentState = state as UserLoaded;
+
+            final updatedUsers = currentState.users
+                .where((user) => user.id != event.id)
+                .toList();
+
+            emit(UserDeleted(response.message));
+            // Emit hanya 1 state yang sudah diupdate
+            emit(UserLoaded(
+              code: response.code,
+              message: response.message,
+              success: true,
+              users: updatedUsers,
+            ));
+            
+          }
+        } else {
+          emit(UserError(response.message));
+        }
+      } catch (e) {
+        emit(UserError('Terjadi kesalahan saat menghapus user: $e'));
       }
     });
   }

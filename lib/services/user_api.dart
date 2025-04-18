@@ -61,4 +61,64 @@ class UserApi {
       throw Exception('Error: $e');
     }
   }
+
+  Future<ResponseModel<UserModel>> updateUser(
+    int id,
+    String name,
+    String email,
+    String password,
+  ) async {
+    final url = _buildUrl('/item/$id');
+    try {
+      final response = await http.patch(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'id': id,
+          'name': name,
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        return ResponseModel<UserModel>.fromJsonForSingle(
+          jsonData,
+          (json) => UserModel.fromJson(json),
+        );
+      } else {
+        throw Exception('Failed to update user');
+      }
+    } catch (e) {
+      throw Exception('Error: $e');
+    }
+  }
+
+  Future<ResponseModel<UserModel>> deleteUser(
+    int id,
+  ) async {
+    final url = _buildUrl('/item/$id');
+    try {
+      final response = await http.delete(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'id': id,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        return ResponseModel<UserModel>.fromJsonForSingle(
+          jsonData,
+          (json) => UserModel.fromJson(json),
+        );
+      } else {
+        throw Exception('Failed to delete user');
+      }
+    } catch (e) {
+      throw Exception('Error: $e');
+    }
+  }
 }
